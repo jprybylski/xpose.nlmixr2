@@ -418,36 +418,38 @@ sum_nlmixr2_shk <- function(model, software, type, obj, rounding) {
       }
       if (type == "eta") {
         omega <- diag(obj$omega)
-        d <- as.data.frame(obj[!duplicated(obj$ID), ])
+        if (length(omega) > 0) {
+          d <- as.data.frame(obj[!duplicated(obj$ID), ])
 
-        ## add ETA if missing
-        if (!all(names(omega) %in% names(d))) {
-          d <- merge(d, obj$eta)
-        }
+          ## add ETA if missing
+          if (!all(names(omega) %in% names(d))) {
+            d <- merge(d, obj$eta)
+          }
 
-        ## account for 1-eta systems
-        if (length(names(omega)) == 1) {
-          d <- data.frame(eta = d[, names(d) %in% names(omega)])
-          names(d) <- names(omega)
-        } else {
-          d <- d[, names(d) %in% names(omega)]
-        }
+          ## account for 1-eta systems
+          if (length(names(omega)) == 1) {
+            d <- data.frame(eta = d[, names(d) %in% names(omega)])
+            names(d) <- names(omega)
+          } else {
+            d <- d[, names(d) %in% names(omega)]
+          }
 
-        eshr <- c()
-        for (i in 1:length(omega)) {
-          shr <- (1 - (stats::sd(d[, i]) / sqrt(omega[i]))) * 100
-          eshr <- c(eshr, round(shr, 3))
+          eshr <- c()
+          for (i in 1:length(omega)) {
+            shr <- (1 - (stats::sd(d[, i]) / sqrt(omega[i]))) * 100
+            eshr <- c(eshr, round(shr, 3))
+          }
+          shk <- paste(
+            paste(
+              round(eshr, digits = rounding),
+              ' [',
+              1:length(eshr),
+              ']',
+              sep = ''
+            ),
+            collapse = ', '
+          )
         }
-        shk <- paste(
-          paste(
-            round(eshr, digits = rounding),
-            ' [',
-            1:length(eshr),
-            ']',
-            sep = ''
-          ),
-          collapse = ', '
-        )
       }
     }
     dplyr::tibble(problem = 1, subprob = 0, label = lab, value = shk)

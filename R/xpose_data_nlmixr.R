@@ -123,12 +123,22 @@ xpose_data_nlmixr2 <- function(
       }
     }
   }
+  if (is.null(wres)) {
+    stop(
+      "Could not automatically determine the weighted residual column. ",
+      "The fit does not contain CWRES, NPDE, or RES. ",
+      "For models without IIV or using ll(), specify `pred` and `wres` manually ",
+      "(e.g. pred = \"IPRED\", wres = \"IWRES\").",
+      call. = FALSE
+    )
+  }
+
   if (is.null(pred)) {
-    if (any(names(obj) == "EPRED") & wres == "NPDE") {
+    if (any(names(obj) == "EPRED") && wres == "NPDE") {
       pred <- "EPRED"
-    } else if (any(names(obj) == "CPRED") & wres == "CWRES") {
+    } else if (any(names(obj) == "CPRED") && wres == "CWRES") {
       pred <- "CPRED"
-    } else if (any(names(obj) == "PRED") & wres == "RES") {
+    } else if (any(names(obj) == "PRED") && wres == "RES") {
       pred <- "PRED"
     } else if (any(names(obj) == "EPRED")) {
       pred <- "EPRED"
@@ -137,6 +147,15 @@ xpose_data_nlmixr2 <- function(
     } else if (any(names(obj) == "PRED")) {
       pred <- "PRED"
     }
+  }
+
+  if (is.null(pred)) {
+    stop(
+      "Could not automatically determine the population prediction column. ",
+      "The fit does not contain EPRED, CPRED, or PRED. ",
+      "Specify `pred` manually (e.g. pred = \"IPRED\").",
+      call. = FALSE
+    )
   }
 
   if (any("nlmixr2FitData" == class(obj))) {

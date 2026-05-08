@@ -48,3 +48,56 @@ test_that("xpose_data object is valid", {
   expect_equal(xpdb_nlmixr2$files$method, "focei")
   expect_true("ITERATION" %in% names(xpdb_nlmixr2$files$data[[1]]))
 })
+
+test_that("no-IIV fit without pred/wres gives a descriptive error (#8)", {
+  no_bsv <- function() {
+    ini({
+      tka <- 0.45
+      tcl <- log(2.7)
+      tv <- 3.45
+      add.sd <- 0.7
+    })
+    model({
+      ka <- exp(tka)
+      cl <- exp(tcl)
+      v <- exp(tv)
+      linCmt() ~ add(add.sd)
+    })
+  }
+
+  fit_no_bsv <- nlmixr2est::nlmixr2(
+    no_bsv,
+    nlmixr2data::theo_sd,
+    "focei",
+    control = nlmixr2est::foceiControl(print = 0)
+  )
+
+  expect_snapshot(error = TRUE, xpose_data_nlmixr2(fit_no_bsv))
+})
+
+test_that("no-IIV fit with manual pred/wres succeeds (#8)", {
+  no_bsv <- function() {
+    ini({
+      tka <- 0.45
+      tcl <- log(2.7)
+      tv <- 3.45
+      add.sd <- 0.7
+    })
+    model({
+      ka <- exp(tka)
+      cl <- exp(tcl)
+      v <- exp(tv)
+      linCmt() ~ add(add.sd)
+    })
+  }
+
+  fit_no_bsv <- nlmixr2est::nlmixr2(
+    no_bsv,
+    nlmixr2data::theo_sd,
+    "focei",
+    control = nlmixr2est::foceiControl(print = 0)
+  )
+
+  xpdb <- xpose_data_nlmixr2(fit_no_bsv, pred = "IPRED", wres = "IWRES")
+  expect_true(xpose::is.xpdb(xpdb))
+})
