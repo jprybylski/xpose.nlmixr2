@@ -49,6 +49,36 @@ test_that("xpose_data object is valid", {
   expect_true("ITERATION" %in% names(xpdb_nlmixr2$files$data[[1]]))
 })
 
+test_that("FOCEi fit with eta fixed to zero (eta ~ 0) succeeds (#10)", {
+  one.cmt.fixed.ka <- function() {
+    ini({
+      tka <- 0.45
+      tcl <- log(2.7)
+      tv <- 3.45
+      eta.ka ~ 0
+      eta.cl ~ 0.3
+      eta.v ~ 0.1
+      add.sd <- 0.7
+    })
+    model({
+      ka <- exp(tka + eta.ka)
+      cl <- exp(tcl + eta.cl)
+      v <- exp(tv + eta.v)
+      linCmt() ~ add(add.sd)
+    })
+  }
+
+  fit_fixed_ka <- nlmixr2est::nlmixr2(
+    one.cmt.fixed.ka,
+    nlmixr2data::theo_sd,
+    "focei",
+    control = nlmixr2est::foceiControl(print = 0)
+  )
+
+  xpdb <- xpose_data_nlmixr2(fit_fixed_ka)
+  expect_true(xpose::is.xpdb(xpdb))
+})
+
 test_that("no-IIV fit without pred/wres gives a descriptive error (#8)", {
   no_bsv <- function() {
     ini({
