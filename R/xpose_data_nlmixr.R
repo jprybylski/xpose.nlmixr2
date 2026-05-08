@@ -63,14 +63,16 @@
 #'}
 #'
 #' @export
-xpose_data_nlmixr2 <- function(obj         = NULL,
-                              pred        = NULL, #"CPRED",
-                              wres        = NULL, #"CWRES",
-                              gg_theme    = theme_readable(),
-                              xp_theme    = theme_xp_default(),
-                              quiet,
-                              skip        = NULL,
-                              ...) {
+xpose_data_nlmixr2 <- function(
+  obj = NULL,
+  pred = NULL, #"CPRED",
+  wres = NULL, #"CWRES",
+  gg_theme = theme_readable,
+  xp_theme = theme_xp_default(),
+  quiet,
+  skip = NULL,
+  ...
+) {
   runname <- deparse(substitute(obj))
 
   . = NULL
@@ -88,48 +90,54 @@ xpose_data_nlmixr2 <- function(obj         = NULL,
     stop('Argument `obj` required.', call. = FALSE)
   }
 
+  if (missing(quiet)) {
+    quiet <- !interactive()
+  }
 
-  if (missing(quiet)) quiet <- !interactive()
-
-  if (!inherits(obj,  "nlmixr2FitData")) {
+  if (!inherits(obj, "nlmixr2FitData")) {
     stop("Input object needs to be an nlmixr2 fit.")
   }
   mtype <- obj$est
   software <- "nlmixr2"
-  if (is.null(wres)){
+  if (is.null(wres)) {
     if (any(names(obj) == "CWRES")) {
       wres <- "CWRES"
-    } else  if (any(names(obj) == "NPDE")){
+    } else if (any(names(obj) == "NPDE")) {
       wres <- "NPDE"
     } else if (any(names(obj) == "RES")) {
       wres <- "RES"
       obj <- nlmixr2est::addCwres(obj)
-      if (any(names(obj) == "CWRES")){
+      if (any(names(obj) == "CWRES")) {
         wres <- "CWRES"
-        warning(sprintf("Added CWRES to fit (using %s%s)...",
-                        crayon::blue("nlmixr2est::"), crayon::yellow("addCwres")))
+        warning(sprintf(
+          "Added CWRES to fit (using %s%s)...",
+          crayon::blue("nlmixr2est::"),
+          crayon::yellow("addCwres")
+        ))
       } else {
-        warning(sprintf("Using RES; Consider adding NPDE (%s%s) to fit.",
-                        crayon::blue("nlmixr2est::"), crayon::yellow("addNpde")))
+        warning(sprintf(
+          "Using RES; Consider adding NPDE (%s%s) to fit.",
+          crayon::blue("nlmixr2est::"),
+          crayon::yellow("addNpde")
+        ))
       }
     }
   }
-  if (is.null(pred)){
-    if (any(names(obj) == "EPRED") & wres == "NPDE"){
+  if (is.null(pred)) {
+    if (any(names(obj) == "EPRED") & wres == "NPDE") {
       pred <- "EPRED"
-    } else if (any(names(obj) == "CPRED") & wres == "CWRES"){
+    } else if (any(names(obj) == "CPRED") & wres == "CWRES") {
       pred <- "CPRED"
-    } else if (any(names(obj) == "PRED") & wres == "RES"){
+    } else if (any(names(obj) == "PRED") & wres == "RES") {
       pred <- "PRED"
-    } else if (any(names(obj) == "EPRED")){
+    } else if (any(names(obj) == "EPRED")) {
       pred <- "EPRED"
-    } else if (any(names(obj) == "CPRED")){
+    } else if (any(names(obj) == "CPRED")) {
       pred <- "CPRED"
-    } else if (any(names(obj) == "PRED")){
+    } else if (any(names(obj) == "PRED")) {
       pred <- "PRED"
     }
   }
-
 
   if (any("nlmixr2FitData" == class(obj))) {
     data <- as.data.frame(obj)
@@ -139,12 +147,18 @@ xpose_data_nlmixr2 <- function(obj         = NULL,
     data_a <- tibble::as_tibble(data_a)
   }
 
-  if(!(wres %in% names(data_a))) {
-    stop(paste(wres, ' not found in nlmixr2 fit object.', sep=""), call. = FALSE)
+  if (!(wres %in% names(data_a))) {
+    stop(
+      paste(wres, ' not found in nlmixr2 fit object.', sep = ""),
+      call. = FALSE
+    )
   }
 
-  if(!(pred %in% names(data_a))) {
-    stop(paste(pred, ' not found in nlmixr2 fit object.', sep=""), call. = FALSE)
+  if (!(pred %in% names(data_a))) {
+    stop(
+      paste(pred, ' not found in nlmixr2 fit object.', sep = ""),
+      call. = FALSE
+    )
   }
 
   if (!inherits(obj, "nlmixr2FitData")) {
@@ -159,7 +173,7 @@ xpose_data_nlmixr2 <- function(obj         = NULL,
   # if(!any(stringr::str_detect(names(data_a), 'ETA\\d+|ET\\d+|eta.*'))) {
   #   data_a <- merge(data_a, obj$eta)
   # }
-  if(!all(names(diag(obj$omega)) %in% names(data_a))) {
+  if (!all(names(diag(obj$omega)) %in% names(data_a))) {
     data_a <- merge(data_a, obj$eta)
   }
 
@@ -171,45 +185,128 @@ xpose_data_nlmixr2 <- function(obj         = NULL,
   data <- NULL
   data_ind <- data_a %>%
     colnames() %>%
-    dplyr::tibble(table = 'nlmixr2',
-                  col   = .,
-                  type  = NA_character_,
-                  label = NA_character_,     # Feature to be added in future release
-                  units = NA_character_) %>% # Feature to be added in future release
-    dplyr::mutate(type = dplyr::case_when(
-      .$col == 'ID' ~ 'id',
-      .$col == 'DV' ~ 'dv',
-      .$col == 'TIME' ~ 'idv',
-      .$col == 'OCC' ~ 'occ',
-      .$col == 'DVID' ~ 'dvid',
-      .$col == 'AMT' ~ 'amt',
-      .$col == 'MDV' ~ 'mdv',
-      .$col == 'EVID' ~ 'evid',
-      .$col == 'IPRED' ~ 'ipred',
-      .$col == pred ~ 'pred',
-      .$col %in% c('RES', 'WRES', 'CWRES', 'IWRES', 'EWRES', 'NPDE','IRES','CRES') ~ 'res',
-      .$col %in% c('WT','AGE','HT','BMI','LBM') ~ 'contcov',
-      .$col %in% c('SEX','RACE') ~ 'catcov',
-      .$col %in% c('CL','V','V1','V2','V3','Q','Q2','Q3','KA','K12','K21','K','K13','K31','K23','K32','K24','K42','K34','K43',
-                   'cl','v','v1','v2','v3','q','q2','q3','ka','k12','k21','k','k13','k31','k23','k32','k24','k42','k34','k43',
-                   'tcl','tv','tv1','tv2','tv3','tq','tq2','tq3','tka','tk12','tk21','tk','tk13','tk31','tk23','tk32','tk24','tk42','tk34','tk43') ~ 'param',
-      stringr::str_detect(.$col, 'ETA\\d+|ET\\d+|eta.*') ~ 'eta'))
+    dplyr::tibble(
+      table = 'nlmixr2',
+      col = .,
+      type = NA_character_,
+      label = NA_character_, # Feature to be added in future release
+      units = NA_character_
+    ) %>% # Feature to be added in future release
+    dplyr::mutate(
+      type = dplyr::case_when(
+        .$col == 'ID' ~ 'id',
+        .$col == 'DV' ~ 'dv',
+        .$col == 'TIME' ~ 'idv',
+        .$col == 'OCC' ~ 'occ',
+        .$col == 'DVID' ~ 'dvid',
+        .$col == 'AMT' ~ 'amt',
+        .$col == 'MDV' ~ 'mdv',
+        .$col == 'EVID' ~ 'evid',
+        .$col == 'IPRED' ~ 'ipred',
+        .$col == pred ~ 'pred',
+        .$col %in%
+          c(
+            'RES',
+            'WRES',
+            'CWRES',
+            'IWRES',
+            'EWRES',
+            'NPDE',
+            'IRES',
+            'CRES'
+          ) ~ 'res',
+        .$col %in% c('WT', 'AGE', 'HT', 'BMI', 'LBM') ~ 'contcov',
+        .$col %in% c('SEX', 'RACE') ~ 'catcov',
+        .$col %in%
+          c(
+            'CL',
+            'V',
+            'V1',
+            'V2',
+            'V3',
+            'Q',
+            'Q2',
+            'Q3',
+            'KA',
+            'K12',
+            'K21',
+            'K',
+            'K13',
+            'K31',
+            'K23',
+            'K32',
+            'K24',
+            'K42',
+            'K34',
+            'K43',
+            'cl',
+            'v',
+            'v1',
+            'v2',
+            'v3',
+            'q',
+            'q2',
+            'q3',
+            'ka',
+            'k12',
+            'k21',
+            'k',
+            'k13',
+            'k31',
+            'k23',
+            'k32',
+            'k24',
+            'k42',
+            'k34',
+            'k43',
+            'tcl',
+            'tv',
+            'tv1',
+            'tv2',
+            'tv3',
+            'tq',
+            'tq2',
+            'tq3',
+            'tka',
+            'tk12',
+            'tk21',
+            'tk',
+            'tk13',
+            'tk31',
+            'tk23',
+            'tk32',
+            'tk24',
+            'tk42',
+            'tk34',
+            'tk43'
+          ) ~ 'param',
+        stringr::str_detect(.$col, 'ETA\\d+|ET\\d+|eta.*') ~ 'eta'
+      )
+    )
 
   data_ind$type[is.na(data_ind$type)] <- 'na'
 
   data <- list()
-  data <- dplyr::tibble(problem = 1,
-                        simtab = F,
-                        index = list(data_ind),
-                        data = list(data_a),
-                        modified = F)
+  data <- dplyr::tibble(
+    problem = 1,
+    simtab = F,
+    index = list(data_ind),
+    data = list(data_a),
+    modified = F
+  )
 
   # Generate model summary
   if ('summary' %in% skip) {
     msg('Skipping summary generation', quiet)
     summary <- NULL
   } else if (software == 'nlmixr2') {
-    summary <- summarise_nlmixr2_model(obj, '', software, rounding = xp_theme$rounding, runname=runname)
+    summary <- summarise_nlmixr2_model(
+      obj,
+      '',
+      software,
+      rounding = xp_theme$rounding,
+      runname = runname
+    )
   }
 
   # The weighted residuals are calculated by dividing the vector of each
@@ -226,18 +323,20 @@ xpose_data_nlmixr2 <- function(obj         = NULL,
   # -Andy
 
   files <- NULL
-  if(mtype=="saem") {
+  if (!is.null(obj$par.hist) && nrow(obj$par.hist) > 0) {
     tracedat <- tibble::as_tibble(as.data.frame(obj$par.hist))
     names(tracedat)[grep("iter", names(tracedat))] <-
       "ITERATION"
 
-    files <- dplyr::tibble(name = deparse(substitute(obj)),
-                           extension = 'ext',
-                           problem = 1,
-                           subprob = 0,
-                           method = 'saem',
-                           data = list(tracedat),
-                           modified = FALSE)
+    files <- dplyr::tibble(
+      name = deparse(substitute(obj)),
+      extension = 'ext',
+      problem = 1,
+      subprob = 0,
+      method = mtype,
+      data = list(tracedat),
+      modified = FALSE
+    )
   }
 
   # Label themes
@@ -245,10 +344,16 @@ xpose_data_nlmixr2 <- function(obj         = NULL,
   attr(xp_theme, 'theme') <- as.character(substitute(xp_theme))
 
   # Output xpose_data
-  list(code = obj$uif, summary = summary, data = data,
-       files = files, gg_theme = gg_theme, xp_theme = xp_theme,
-       options = list(dir = NULL, quiet = quiet,
-                      manual_import = NULL), software = 'nlmixr2') %>%
+  list(
+    code = obj$uif,
+    summary = summary,
+    data = data,
+    files = files,
+    gg_theme = gg_theme,
+    xp_theme = xp_theme,
+    options = list(dir = NULL, quiet = quiet, manual_import = NULL),
+    software = 'nlmixr2'
+  ) %>%
     structure(class = c('xpose_data', 'uneval'))
 }
 
